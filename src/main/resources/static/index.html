@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI Alibaba Graph Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; text-align: center; }
+        .header h1 { font-size: 22px; margin-bottom: 6px; }
+        .header p { opacity: 0.85; font-size: 14px; }
+        .container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card h2 { font-size: 16px; margin-bottom: 16px; color: #444; border-bottom: 2px solid #667eea; padding-bottom: 8px; display: inline-block; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #555; }
+        input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color .2s; outline: none; }
+        input:focus, textarea:focus { border-color: #667eea; }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        .form-row { margin-bottom: 14px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all .2s; font-weight: 600; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover:not(:disabled) { background: #059669; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover:not(:disabled) { background: #d1d5db; }
+        .presets { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .preset-btn { padding: 6px 12px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 20px; font-size: 12px; cursor: pointer; color: #555; }
+        .preset-btn:hover { background: #e0e7ff; border-color: #667eea; color: #667eea; }
+        .result-section { display: none; }
+        .result-section.show { display: block; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-sent { background: #d1fae5; color: #065f46; }
+        .status-waiting { background: #fef3c7; color: #92400e; }
+        .status-processing { background: #dbeafe; color: #1e40af; }
+        .status-error { background: #fee2e2; color: #991b1b; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .info-item { background: #f9fafb; padding: 12px; border-radius: 8px; }
+        .info-item .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-item .value { font-size: 15px; font-weight: 600; margin-top: 4px; }
+        .draft-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; white-space: pre-wrap; line-height: 1.6; font-size: 14px; max-height: 300px; overflow-y: auto; }
+        .approve-area { display: none; margin-top: 16px; }
+        .approve-area.show { display: block; }
+        .approve-area textarea { margin-bottom: 10px; }
+        .loading { display: none; text-align: center; padding: 20px; }
+        .loading.show { display: block; }
+        .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #667eea; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .thread-input { display: flex; gap: 8px; }
+        .thread-input input { flex: 1; }
+        .log-area { background: #1e293b; color: #94a3b8; padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; line-height: 1.8; }
+        .log-area .log-ok { color: #34d399; }
+        .log-area .log-err { color: #f87171; }
+        .log-area .log-info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Spring AI Alibaba Graph Demo</h1>
+    <p>智能客服邮件处理工作流</p>
+</div>
+
+<div class="container">
+    <!-- Input Card -->
+    <div class="card">
+        <h2>提交邮件</h2>
+        <div class="presets">
+            <button class="preset-btn" onclick="setPreset('question')">&#x2753; 密码重置问题</button>
+            <button class="preset-btn" onclick="setPreset('bug')">&#x1F41B; Bug 报告</button>
+            <button class="preset-btn" onclick="setPreset('billing')">&#x1F4B3; 紧急账单</button>
+            <button class="preset-btn" onclick="setPreset('feature')">&#x2728; 功能请求</button>
+            <button class="preset-btn" onclick="setPreset('complex')">&#x1F9E0; 复杂技术问题</button>
+        </div>
+        <div class="form-row">
+            <label>发件人</label>
+            <input type="text" id="sender" value="customer@example.com" placeholder="sender email">
+        </div>
+        <div class="form-row">
+            <label>邮件内容</label>
+            <textarea id="emailContent" placeholder="输入客户邮件内容..."></textarea>
+        </div>
+        <div class="btn-group">
+            <button class="btn-primary" id="submitBtn" onclick="processEmail()">&#x1F680; 处理邮件</button>
+            <button class="btn-secondary" onclick="streamEmail()">&#x1F4DC; 流式处理 (SSE)</button>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div id="loadingText">正在处理中...</div>
+    </div>
+
+    <!-- Result Card -->
+    <div class="card result-section" id="resultCard">
+        <h2>处理结果</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="label">Thread ID</div>
+                <div class="value" id="threadId">-</div>
+            </div>
+            <div class="info-item">
+                <div class="label">状态</div>
+                <div class="value" id="statusValue">-</div>
+            </div>
+            <div class="info-item">
+                <div class="label">意图</div>
+                <div class="value" id="intentValue">-</div>
+            </div>
+            <div class="info-item">
+                <div class="label">紧急程度</div>
+                <div class="value" id="urgencyValue">-</div>
+            </div>
+        </div>
+        <div style="margin-bottom:8px"><label>AI 起草的回复</label></div>
+        <div class="draft-box" id="draftResponse">-</div>
+        <div id="messageArea" style="margin-top:12px;color:#667eea;font-size:13px;display:none"></div>
+
+        <!-- Approve Area -->
+        <div class="approve-area" id="approveArea">
+            <h2 style="margin-top:8px">人工审核</h2>
+            <label>修改回复（可选）</label>
+            <textarea id="editedResponse" rows="4" placeholder="可以修改 AI 起草的回复，留空则使用原回复"></textarea>
+            <div class="btn-group">
+                <button class="btn-success" onclick="approveEmail()">&#x2705; 审批通过并发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Query Card -->
+    <div class="card">
+        <h2>查询状态</h2>
+        <div class="thread-input">
+            <input type="text" id="queryThreadId" placeholder="输入 Thread ID 查询状态">
+            <button class="btn-primary" onclick="queryState()">&#x1F50D; 查询</button>
+        </div>
+    </div>
+
+    <!-- SSE Log Card -->
+    <div class="card result-section" id="sseCard">
+        <h2>SSE 流式日志</h2>
+        <div class="log-area" id="sseLog"></div>
+    </div>
+</div>
+
+<script>
+const BASE = '/api';
+
+const presets = {
+    question: { content: 'How to reset my password? I forgot it and cannot login.', sender: 'user1@example.com' },
+    bug: { content: 'The export feature crashes when I select PDF format. It shows a white screen and becomes unresponsive.', sender: 'developer@example.com' },
+    billing: { content: 'My subscription was charged twice this month! This is urgent and I need an immediate refund!', sender: 'angry@example.com' },
+    feature: { content: 'Can you add dark mode support in the mobile app? It would be great for nighttime usage.', sender: 'suggestion@example.com' },
+    complex: { content: 'Our API integration with your service is intermittently failing with 504 errors. The issue started after we upgraded to v3. We are on a premium plan and this is affecting our production users.', sender: 'enterprise@example.com' }
+};
+
+function setPreset(type) {
+    const p = presets[type];
+    document.getElementById('emailContent').value = p.content;
+    document.getElementById('sender').value = p.sender;
+}
+
+function showLoading(text) {
+    document.getElementById('loadingText').textContent = text || '正在处理中...';
+    document.getElementById('loading').classList.add('show');
+}
+function hideLoading() {
+    document.getElementById('loading').classList.remove('show');
+}
+
+function setStatusBadge(status) {
+    const el = document.getElementById('statusValue');
+    const map = {
+        'sent': ['status-sent', '已发送'],
+        'waiting_for_review': ['status-waiting', '等待审核'],
+        'processing': ['status-processing', '处理中'],
+    };
+    const [cls, label] = map[status] || ['status-error', status || '未知'];
+    el.innerHTML = `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+function showResult(data) {
+    const card = document.getElementById('resultCard');
+    card.classList.add('show');
+    document.getElementById('threadId').textContent = data.thread_id || '-';
+    setStatusBadge(data.status);
+    document.getElementById('messageArea').style.display = 'none';
+
+    if (data.classification) {
+        document.getElementById('intentValue').textContent = data.classification.intent || '-';
+        document.getElementById('urgencyValue').textContent = data.classification.urgency || '-';
+    } else {
+        document.getElementById('intentValue').textContent = '-';
+        document.getElementById('urgencyValue').textContent = '-';
+    }
+
+    document.getElementById('draftResponse').textContent = data.draft_response || '(无)';
+
+    if (data.message) {
+        const msg = document.getElementById('messageArea');
+        msg.style.display = 'block';
+        msg.textContent = data.message;
+    }
+
+    // Show approve area if waiting
+    const approveArea = document.getElementById('approveArea');
+    if (data.status === 'waiting_for_review') {
+        approveArea.classList.add('show');
+        document.getElementById('editedResponse').value = data.draft_response || '';
+    } else {
+        approveArea.classList.remove('show');
+    }
+}
+
+async function processEmail() {
+    const content = document.getElementById('emailContent').value.trim();
+    if (!content) { alert('请输入邮件内容'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    showLoading('Graph 工作流处理中...');
+
+    try {
+        const resp = await fetch(BASE + '/graph/email/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email_content: content, sender_email: document.getElementById('sender').value })
+        });
+        const data = await resp.json();
+        if (data.thread_id) document.getElementById('queryThreadId').value = data.thread_id;
+        showResult(data);
+    } catch (e) {
+        alert('请求失败: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        hideLoading();
+    }
+}
+
+async function approveEmail() {
+    const threadId = document.getElementById('threadId').textContent;
+    if (!threadId || threadId === '-') { alert('无有效的 Thread ID'); return; }
+
+    const edited = document.getElementById('editedResponse').value.trim();
+    showLoading('审批处理中...');
+
+    try {
+        const body = edited ? JSON.stringify({ edited_response: edited }) : '{}';
+        const resp = await fetch(BASE + '/graph/email/approve/' + threadId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body
+        });
+        const data = await resp.json();
+        showResult(data);
+    } catch (e) {
+        alert('审批失败: ' + e.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+async function queryState() {
+    const threadId = document.getElementById('queryThreadId').value.trim();
+    if (!threadId) { alert('请输入 Thread ID'); return; }
+
+    showLoading('查询状态...');
+    try {
+        const resp = await fetch(BASE + '/graph/email/state/' + threadId);
+        const data = await resp.json();
+        showResult(data);
+    } catch (e) {
+        alert('查询失败: ' + e.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+function streamEmail() {
+    const content = document.getElementById('emailContent').value.trim();
+    if (!content) { alert('请输入邮件内容'); return; }
+
+    const logEl = document.getElementById('sseLog');
+    logEl.innerHTML = '';
+    document.getElementById('sseCard').classList.add('show');
+
+    const params = new URLSearchParams({
+        emailContent: content,
+        senderEmail: document.getElementById('sender').value
+    });
+
+    const url = BASE + '/graph/email/stream?' + params.toString();
+    logEl.innerHTML += `<div class="log-info">[连接中...]</div>`;
+
+    fetch(url)
+        .then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            function read() {
+                reader.read().then(({ done, value }) => {
+                    if (done) {
+                        logEl.innerHTML += `<div class="log-err">[完成]</div>`;
+                        logEl.scrollTop = logEl.scrollHeight;
+                        return;
+                    }
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop();
+                    for (const block of lines) {
+                        const dataLine = block.split('\n').find(l => l.startsWith('data:'));
+                        if (dataLine) {
+                            const raw = dataLine.substring(5);
+                            try {
+                                const obj = JSON.parse(raw);
+                                const node = obj.node || '?';
+                                const ts = new Date().toLocaleTimeString();
+                                logEl.innerHTML += `<div class="log-ok">[${ts}] ${escapeHtml(node)}</div>`;
+                            } catch {
+                                logEl.innerHTML += `<div class="log-ok">${escapeHtml(raw.substring(0, 200))}</div>`;
+                            }
+                            logEl.scrollTop = logEl.scrollHeight;
+                        }
+                    }
+                    read();
+                });
+            }
+            read();
+        })
+        .catch(e => {
+            logEl.innerHTML += `<div class="log-err">[错误] ${escapeHtml(e.message)}</div>`;
+        });
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+</script>
+</body>
+</html>
