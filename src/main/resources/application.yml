@@ -1,11 +1,11 @@
 spring:
   application:
     name: Spring-alibaba-example
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/your_database?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: your_password
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://localhost:3306/your_database?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+#    username: root
+#    password: your_password
   ai:
     dashscope:
       api-key: ${qwen.apiKey}
@@ -19,7 +19,7 @@ server:
     context-path: /api
 
 qwen:
-  apiKey: sk-e26ef7931f2a480b9d7ec6a2fb56527a
+  apiKey: your-apikey
 
 # springdoc-openapi 配置
 springdoc:
